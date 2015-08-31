@@ -75,14 +75,18 @@ module Chewy
 
       private
 
-        def bulk_body(action_objects, indexed_objects = nil)
+        def bulk_body(action_objects, *args)
+          options = args.extract_options!
+          indexed_objects = args.shift
           action_objects.inject([]) do |result, (action, objects)|
             method = "#{action}_bulk_entry"
-            result.concat(objects.map { |object| send(method, object, indexed_objects) }.flatten)
+            result.concat(objects.map { |object| send(method, object, indexed_objects, options) }.flatten)
           end
         end
 
-        def delete_bulk_entry(object, indexed_objects = nil)
+        def delete_bulk_entry(object, *args)
+          options = args.extract_options!
+          indexed_objects = args.shift
           entry = {}
 
           if self.root_object.id
@@ -102,7 +106,9 @@ module Chewy
           [{ delete: entry }]
         end
 
-        def index_bulk_entry(object, indexed_objects = nil)
+        def index_bulk_entry(object, *args)
+          options = args.extract_options!
+          indexed_objects = args.shift
           entry = {}
 
           if self.root_object.id
@@ -148,8 +154,8 @@ module Chewy
           end
         end
 
-        def object_data object
-          (self.root_object ||= build_root).compose(object)[type_name.to_sym]
+        def object_data object, options = {}
+          (self.root_object ||= build_root).compose(object, options)[type_name.to_sym]
         end
 
         def extract_errors result

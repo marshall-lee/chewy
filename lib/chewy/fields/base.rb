@@ -20,7 +20,10 @@ module Chewy
         false
       end
 
-      def compose(object, *parent_objects)
+      def compose(object, *args)
+        options = args.extract_options!
+        parent_objects = args
+
         result = if value && value.is_a?(Proc)
           value.arity.zero? ? object.instance_exec(&value) :
             value.call(object, *parent_objects.first(value.arity - 1))
@@ -31,9 +34,9 @@ module Chewy
         end
 
         result = if result.respond_to?(:to_ary)
-          result.to_ary.map { |result| nested_compose(result, object, *parent_objects) }
+          result.to_ary.map { |result| nested_compose(result, object, *parent_objects, options) }
         else
-          nested_compose(result, object, *parent_objects)
+          nested_compose(result, object, *parent_objects, options)
         end if nested.any? && !multi_field?
 
         {name => result.as_json(root: false)}
@@ -58,8 +61,30 @@ module Chewy
 
     private
 
-      def nested_compose(value, *parent_objects)
-        nested.values.map { |field| field.compose(value, *parent_objects) if value }.compact.inject(:merge)
+      def nested_compose(value, *args)
+        options = args.extract_options!
+        parent_objects = args
+        onlys = if options && options[:only]
+          options[:only].each_with_object({}) do |only, result|
+            if only.is_a? Symbol
+              result[only] = true
+            else
+              result.merge! only
+            end
+          end
+        end
+        nested.map do |name, field|
+          next unless value
+          new_options = nil
+          if onlys
+            next unless onlys.include? name
+            if onlys[name].is_a? Array
+              new_options = {}
+              new_options[:only] = onlys[name]
+            end
+          end
+          field.compose(value, *parent_objects, new_options)
+        end.compact.inject(:merge)
       end
     end
   end

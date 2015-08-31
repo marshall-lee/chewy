@@ -4,6 +4,7 @@ require 'chewy/type/wrapper'
 require 'chewy/type/observe'
 require 'chewy/type/actions'
 require 'chewy/type/import'
+require 'chewy/type/update_or_import'
 require 'chewy/type/adapter/object'
 require 'chewy/type/adapter/active_record'
 require 'chewy/type/adapter/mongoid'
@@ -16,6 +17,7 @@ module Chewy
     include Observe
     include Actions
     include Import
+    include UpdateOrImport
 
     singleton_class.delegate :index_name, :client, to: :index
 
